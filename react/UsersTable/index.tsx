@@ -1,285 +1,121 @@
-import React, { Component, Fragment } from 'react'
-import {
-  Table,
-  IconArrowUp,
-  IconArrowDown,
-  IconShoppingCart,
-  Input,
-} from 'vtex.styleguide'
-import faker from 'faker'
-import { withRuntimeContext } from 'vtex.render-runtime'
+import React, { useState } from 'react';
+import { mockPedidos } from './mock';
 
-const EXAMPLE_LENGTH = 100
-const MOCKED_DATA = [...Array(EXAMPLE_LENGTH)].map(() => ({
-  name: faker.name.findName(),
-  streetAddress: faker.address.streetAddress(),
-  cityStateZipAddress: `${faker.address.city()}, ${faker.address.stateAbbr()} ${faker.address.zipCode()}`,
-  email: faker.internet.email().toLowerCase(),
-}))
-
-interface Props {
-  runtime: any
+interface Pedido {
+  orderId: string;
+  creationDate: string;
+  // Adicione outras propriedades conforme necessário
 }
 
-class UsersTable extends Component<Props> {
-  constructor(props: any) {
-    super(props)
-    this.state = {
-      items: MOCKED_DATA,
-      tableDensity: 'low',
-      searchValue: null,
-      filterStatements: [],
+const AdminRecompra = () => {
+  const [email, setEmail] = useState('');
+  const [data, setData] = useState<{ list: Pedido[] } | null>(null);
+  const [diferencaEntreDatas, setDiferencaEntreDatas] = useState<
+    number[] | null
+  >(null);
+
+  // TO DO
+  // Verificar autenticacao, porque o VtexIdclientAutCookie é httpOnly e nao da pra pegar do window
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`/api/oms/pvt/orders?q=${encodeURIComponent(email)}`, {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'VtexIdclientAutCookie':
+            'eyJhbGciOiJFUzI1NiIsImtpZCI6IjgwOTVDRkExMDc3MDM4OTY2NTJCRkRGMEIyMEM4OUJFOUYwODMwQ0UiLCJ0eXAiOiJqd3QifQ.eyJzdWIiOiJnYWJyaWVsLm1hcnRpbnNAdnRleC5jb20iLCJhY2NvdW50Ijoic3F1YWRncm93IiwiYXVkaWVuY2UiOiJhZG1pbiIsInNlc3MiOiIyYjViN2NiYy0wMTUwLTRhYzQtYmJjYi1lNTQzY2E2OWM0NWQiLCJleHAiOjE3MTUyODAzMzEsInR5cGUiOiJ1c2VyIiwidXNlcklkIjoiOGFlYTNkMzItNmQ5Ni00NmJmLTlkMWQtMjExMGZhZGMzZjg5IiwiaWF0IjoxNzE1MTkzOTMxLCJpc3MiOiJ0b2tlbi1lbWl0dGVyIiwianRpIjoiNDQyOGRiZGMtNTc3YS00ZGU5LTg2NDQtOTIzYzAzNDQzMjdiIn0.72qWkaVzjJ8R7VTE1a6HpK314L_mzvv0PizWRtWvQ7lh_bs04yXSxkqcbGai-iJXCh4sqhKOSYCbqrUQn5__Zw',
+          Cookie: 'janus_sid=781beebe-6562-4cb0-8d29-cd80c0b34fc2',
+        },
+      });
+      let jsonData = await response.json();
+      jsonData = mockPedidos; // AQUI ENTRA O MOCK DE TROUSSEAU - REMOVENDO ESSA LINHA DEVE PEGAR DO EMAIL QUE FOI INSERIDO
+      setData(jsonData);
+
+      if (jsonData && jsonData.list.length > 1) {
+        const diferenca = calcularDiferencaEntreDatas(jsonData.list);
+        console.log('Diferença entre datas:', diferenca);
+        setDiferencaEntreDatas(diferenca);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
+  };
+
+  const calcularDiferencaEntreDatas = (data: Pedido[] | null) => {
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const diferencaEntreDatas: number[] = [];
+
+    for (let i = 0; i < data.length - 1; i++) {
+      const dataAtual = new Date(data[i].creationDate);
+      const proximaData = new Date(data[i + 1].creationDate);
+
+      const diferencaEmMS = proximaData.getTime() - dataAtual.getTime();
+      const dias = Math.floor(diferencaEmMS / (1000 * 60 * 60 * 24));
+
+      diferencaEntreDatas.push(Math.abs(dias));
+    }
+
+    return diferencaEntreDatas;
+  };
+
+  const formatDate = (date: string) => {
+    const dataString = date;
+    const data = new Date(dataString);
+
+    const dia = data.getDate().toString().padStart(2, '0'); // Adiciona um zero à esquerda se necessário
+    const mes = (data.getMonth() + 1).toString().padStart(2, '0'); // Adiciona um zero à esquerda se necessário
+    const ano = data.getFullYear();
+    const hora = data.getHours().toString().padStart(2, '0'); // Adiciona um zero à esquerda se necessário
+    const minutos = data.getMinutes().toString().padStart(2, '0'); // Adiciona um zero à esquerda se necessário
+    const segundos = data.getSeconds().toString().padStart(2, '0'); // Adiciona um zero à esquerda se necessário
+
+    const dataFormatada = `${dia}/${mes}/${ano} ${hora}:${minutos}:${segundos}`;
+
+    console.log(dataFormatada); // Saída: "08/05/2024 19:07:16"
+    return dataFormatada
   }
 
-  private getSchema() {
-    const { tableDensity }: any = this.state
+  const handleConsultar = async () => {
+    await fetchData();
+  };
 
-    let fontSize = 'f5'
-
-    switch (tableDensity) {
-      case 'low': {
-        fontSize = 'f5'
-        break
-      }
-      case 'medium': {
-        fontSize = 'f6'
-        break
-      }
-      case 'high': {
-        fontSize = 'f7'
-        break
-      }
-      default: {
-        fontSize = 'f5'
-        break
-      }
-    }
-    return {
-      properties: {
-        name: {
-          title: 'Name',
-        },
-        streetAddress: {
-          title: 'Street Address',
-          cellRenderer: ({ cellData }: any) => {
-            return <span className="ws-normal">{cellData}</span>
-          },
-        },
-        cityStateZipAddress: {
-          title: 'City, State Zip',
-          cellRenderer: ({ cellData }: any) => {
-            return <span className={`ws-normal ${fontSize}`}>{cellData}</span>
-          },
-        },
-        email: {
-          title: 'Email',
-          cellRenderer: ({ cellData }: any) => {
-            return <span className={`ws-normal ${fontSize}`}>{cellData}</span>
-          },
-        },
-      },
-    }
-  }
-
-  private simpleInputObject({ values, onChangeObjectCallback }: any) {
-    return (
-      <Input
-        value={values || ''}
-        onChange={(e: any) => onChangeObjectCallback(e.target.value)}
-      />
-    )
-  }
-
-  private simpleInputVerbsAndLabel() {
-    return {
-      renderFilterLabel: (st: any) => {
-        if (!st || !st.object) {
-          // you should treat empty object cases only for alwaysVisibleFilters
-          return 'Any'
-        }
-        return `${
-          st.verb === '=' ? 'is' : st.verb === '!=' ? 'is not' : 'contains'
-        } ${st.object}`
-      },
-      verbs: [
-        {
-          label: 'is',
-          value: '=',
-          object: {
-            renderFn: this.simpleInputObject,
-            extraParams: {},
-          },
-        },
-        {
-          label: 'is not',
-          value: '!=',
-          object: {
-            renderFn: this.simpleInputObject,
-            extraParams: {},
-          },
-        },
-        {
-          label: 'contains',
-          value: 'contains',
-          object: {
-            renderFn: this.simpleInputObject,
-            extraParams: {},
-          },
-        },
-      ],
-    }
-  }
-
-  public render() {
-    const {
-      items,
-      searchValue,
-      filterStatements,
-      tableDensity,
-    }: any = this.state
-    const {
-      runtime: { navigate },
-    } = this.props
-
-    return (
+  console.log(data, "data1")
+  return (
+    <>
       <div>
-        <Table
-          fullWidth
-          updateTableKey={tableDensity}
-          items={items}
-          schema={this.getSchema()}
-          density="low"
-          onRowClick={({ rowData }: any) =>
-            navigate({
-              page: 'admin.app.example-detail',
-              params: { id: rowData.id },
-            })
-          }
-          toolbar={{
-            density: {
-              buttonLabel: 'Line density',
-              lowOptionLabel: 'Low',
-              mediumOptionLabel: 'Medium',
-              highOptionLabel: 'High',
-              handleCallback: (density: string) =>
-                this.setState({ tableDensity: density }),
-            },
-            inputSearch: {
-              value: searchValue,
-              placeholder: 'Search stuff...',
-              onChange: (value: string) =>
-                this.setState({ searchValue: value }),
-              onClear: () => this.setState({ searchValue: null }),
-              onSubmit: () => {},
-            },
-            download: {
-              label: 'Export',
-              handleCallback: () => alert('Callback()'),
-            },
-            upload: {
-              label: 'Import',
-              handleCallback: () => alert('Callback()'),
-            },
-            fields: {
-              label: 'Toggle visible fields',
-              showAllLabel: 'Show All',
-              hideAllLabel: 'Hide All',
-            },
-            extraActions: {
-              label: 'More options',
-              actions: [
-                {
-                  label: 'An action',
-                  handleCallback: () => alert('An action'),
-                },
-                {
-                  label: 'Another action',
-                  handleCallback: () => alert('Another action'),
-                },
-                {
-                  label: 'A third action',
-                  handleCallback: () => alert('A third action'),
-                },
-              ],
-            },
-            newLine: {
-              label: 'New',
-              handleCallback: () => alert('handle new line callback'),
-            },
-          }}
-          filters={{
-            alwaysVisibleFilters: ['name', 'email'],
-            statements: filterStatements,
-            onChangeStatements: (newStatements: string) =>
-              this.setState({ filterStatements: newStatements }),
-            clearAllFiltersButtonLabel: 'Clear Filters',
-            collapseLeft: true,
-            options: {
-              name: {
-                label: 'Name',
-                ...this.simpleInputVerbsAndLabel(),
-              },
-              email: {
-                label: 'Email',
-                ...this.simpleInputVerbsAndLabel(),
-              },
-              streetAddress: {
-                label: 'Street Address',
-                ...this.simpleInputVerbsAndLabel(),
-              },
-              cityStateZipAddress: {
-                label: 'City State Zip',
-                ...this.simpleInputVerbsAndLabel(),
-              },
-            },
-          }}
-          totalizers={[
-            {
-              label: 'Sales',
-              value: '420.763',
-              icon: <IconShoppingCart size={14} />,
-            },
-            {
-              label: 'Cash in',
-              value: 'R$ 890.239,05',
-              iconBackgroundColor: '#eafce3',
-              icon: <IconArrowUp color="#79B03A" size={14} />,
-            },
-
-            {
-              label: 'Cash out',
-              value: '- R$ 13.485,26',
-              icon: <IconArrowDown size={14} />,
-            },
-          ]}
-          bulkActions={{
-            texts: {
-              secondaryActionsLabel: 'Actions',
-              rowsSelected: (qty: any) => (
-                <Fragment>Selected rows: {qty}</Fragment>
-              ),
-              selectAll: 'Select all',
-              allRowsSelected: (qty: any) => (
-                <Fragment>All rows selected: {qty}</Fragment>
-              ),
-            },
-            totalItems: 100,
-            main: {
-              label: 'Send email',
-              handleCallback: (_params: any) => alert('TODO: SHOW EMAIL FORM'),
-            },
-            others: [
-              {
-                label: 'Delete',
-                handleCallback: (params: any) => console.warn(params),
-              },
-            ],
-          }}
+        <input
+          type="text"
+          placeholder="Insira o e-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
+        <button onClick={handleConsultar}>Consultar</button>
       </div>
-    )
-  }
-}
+      {data !== null && (
+        <div>
+          {data.list.length ?
+            <ul>
+              <h2>Pedidos</h2>
+              {data.list.map((pedido: Pedido, index: number) => (
+                <li key={pedido.orderId}>
+                  <strong>Id do Pedido:</strong> {pedido.orderId},{' '}
+                  <strong>Data do Pedido:</strong> {formatDate(pedido.creationDate)}
+                  {diferencaEntreDatas && index > 0 && (
+                    <span>
+                      {'  -  '}
+                      {diferencaEntreDatas[index - 1]} dias desde o pedido anterior
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul> : <>Nenhum pedido encontrado!</>}
+        </div>
+      )}
+    </>
+  );
+};
 
-export default withRuntimeContext(UsersTable)
+export default AdminRecompra;

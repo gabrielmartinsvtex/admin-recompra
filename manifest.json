@@ -1,6 +1,6 @@
 {
   "name": "admin-recompra",
-  "vendor": "squadgrow",
+  "vendor": "lojatrousseau",
   "version": "0.0.1",
   "title": "Recompra Admin App",
   "description": "",
@@ -15,7 +15,47 @@
     "react": "3.x",
     "admin": "0.x",
     "messages": "1.x",
-    "docs": "0.x"
+    "docs": "0.x",
+    "node": "6.x"
   },
+  "policies": [
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "httpstat.us",
+        "path": "*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "portal.vtexcommercestable.com.br",
+        "path": "/api/*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "{{account}}.vtexcommercestable.com.br",
+        "path": "/api/*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "api.vtex.com",
+        "path": "/api/*"
+      }
+    },
+    {
+      "name": "ADMIN_DS"
+    },
+    {
+      "name": "colossus-fire-event"
+    },
+    {
+      "name": "colossus-write-logs"
+    }
+  ],
   "$schema": "https://raw.githubusercontent.com/vtex/node-vtex-api/master/gen/manifest.schema"
 }
